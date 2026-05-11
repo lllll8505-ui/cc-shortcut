@@ -56,11 +56,11 @@ nonisolated final class EventTapManager {
 
         let userInfo = Unmanaged.passUnretained(self).toOpaque()
 
-        // Session-level tap works with just Accessibility permission.
-        // (HID-level tap would catch even system shortcuts but requires the
-        // separate Input Monitoring permission, which we haven't requested.)
+        // HID-level tap catches events before macOS processes system shortcuts
+        // (⌘⇧3/4/5, Mission Control, Cmd-Tab, …). Requires Input Monitoring
+        // permission in addition to Accessibility (managed by AccessibilityPermission).
         guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
+            tap: .cghidEventTap,
             place: .headInsertEventTap,
             options: .defaultTap,
             eventsOfInterest: mask,

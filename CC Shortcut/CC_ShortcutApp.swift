@@ -77,25 +77,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .store(in: &cancellables)
 
         // Initial state at launch.
-        if permission.isTrusted {
+        if permission.isFullyTrusted {
             eventTap.start()
         }
 
-        // React only to actual transitions. On false → true we relaunch,
-        // because newly granted Accessibility permission isn't always picked
-        // up by the running process.
-        permission.$isTrusted
-            .dropFirst()
-            .removeDuplicates()
-            .sink { [weak self] trusted in
-                guard let self else { return }
-                if trusted {
-                    self.relaunchApp()
-                } else {
-                    self.eventTap.stop()
-                }
+        // React only to actual transitions of the combined trusted state.
+        // On false → true we relaunch the process, because newly granted
+        // permissions aren't always picked up by the running app.
+        Publishers.CombineLatest(
+            permission.$isAccessibilityTrusted,
+            permission.$isInputMonitoringTrusted
+        )
+        .map { $0 && $1 }
+        .dropFirst()
+        .removeDuplicates()
+        .sink { [weak self] fullyTrusted in
+            guard let self else { return }
+            if fullyTrusted {
+                self.relaunchApp()
+            } else {
+                self.eventTap.stop()
             }
-            .store(in: &cancellables)
+        }
+        .store(in: &cancellables)
     }
 
     private func relaunchApp() {

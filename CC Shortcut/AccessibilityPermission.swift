@@ -2,21 +2,34 @@
 //  AccessibilityPermission.swift
 //  CC Shortcut
 //
+//  Manages the two TCC permissions CC Shortcut needs:
+//   1. Accessibility — to create a CGEventTap that can modify events
+//   2. Input Monitoring — required for HID-level taps that catch system
+//      shortcuts (⌘⇧3/4/5, Mission Control, …) before macOS processes them
+//
 
 import Foundation
 import AppKit
 import ApplicationServices
+import IOKit.hid
 import Combine
 
 @MainActor
 final class AccessibilityPermission: ObservableObject {
-    @Published private(set) var isTrusted: Bool
+    @Published private(set) var isAccessibilityTrusted: Bool
+    @Published private(set) var isInputMonitoringTrusted: Bool
+
+    var isFullyTrusted: Bool {
+        isAccessibilityTrusted && isInputMonitoringTrusted
+    }
 
     private var monitorTask: Task<Void, Never>?
     private var activationObserver: NSObjectProtocol?
 
     init() {
-        self.isTrusted = AXIsProcessTrusted()
+        self.isAccessibilityTrusted = AXIsProcessTrusted()
+        self.isInputMonitoringTrusted =
+            IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) == kIOHIDAccessTypeGranted
         startMonitoring()
         observeAppActivation()
     }
@@ -29,8 +42,6 @@ final class AccessibilityPermission: ObservableObject {
     }
 
     private func startMonitoring() {
-        // Poll every 0.5s — TCC has no notification API, so polling is the
-        // only way to learn that the user toggled Accessibility on.
         monitorTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(500))
@@ -40,8 +51,6 @@ final class AccessibilityPermission: ObservableObject {
     }
 
     private func observeAppActivation() {
-        // Immediately re-check when the user comes back to the app after
-        // toggling permission in System Settings.
         activationObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification,
             object: nil,
@@ -54,23 +63,35 @@ final class AccessibilityPermission: ObservableObject {
     }
 
     private func refresh() {
-        let current = AXIsProcessTrusted()
-        if current != isTrusted {
-            isTrusted = current
-        }
+        let ax = AXIsProcessTrusted()
+        let im = IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) == kIOHIDAccessTypeGranted
+        if ax != isAccessibilityTrusted { isAccessibilityTrusted = ax }
+        if im != isInputMonitoringTrusted { isInputMonitoringTrusted = im }
     }
 
-    func request() {
+    func requestAccessibility() {
         let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
         let options = [key: true] as CFDictionary
-        let result = AXIsProcessTrustedWithOptions(options)
-        if result != isTrusted {
-            isTrusted = result
+        _ = AXIsProcessTrustedWithOptions(options)
+        refresh()
+    }
+
+    func requestInputMonitoring() {
+        // Registers the app with TCC. The user still has to toggle the switch
+        // in System Settings; this just makes the app appear in the list.
+        _ = IOHIDRequestAccess(kIOHIDRequestTypeListenEvent)
+        refresh()
+    }
+
+    func openAccessibilitySettings() {
+        let urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+        if let url = URL(string: urlString) {
+            NSWorkspace.shared.open(url)
         }
     }
 
-    func openSystemSettings() {
-        let urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+    func openInputMonitoringSettings() {
+        let urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent"
         if let url = URL(string: urlString) {
             NSWorkspace.shared.open(url)
         }
