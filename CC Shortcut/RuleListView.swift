@@ -10,6 +10,8 @@ struct RuleListView: View {
     @EnvironmentObject private var status: AppStatus
     @Binding var selection: ShortcutRule.ID?
 
+    @State private var pendingDelete: ShortcutRule.ID?
+
     var body: some View {
         VStack(spacing: 0) {
             // EventTap status banner — green = remap running, red = not.
@@ -34,7 +36,7 @@ struct RuleListView: View {
                         .tag(rule.id)
                         .contextMenu {
                             Button(role: .destructive) {
-                                delete(id: rule.id)
+                                pendingDelete = rule.id
                             } label: {
                                 Label("삭제", systemImage: "trash")
                             }
@@ -101,6 +103,31 @@ struct RuleListView: View {
             .padding(.vertical, 6)
             .background(Color(nsColor: .controlBackgroundColor))
         }
+        .alert(
+            "이 규칙을 삭제할까요?",
+            isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { if !$0 { pendingDelete = nil } }
+            ),
+            presenting: pendingDelete
+        ) { id in
+            Button("삭제", role: .destructive) {
+                delete(id: id)
+            }
+            Button("취소", role: .cancel) { }
+        } message: { id in
+            if let rule = store.rule(for: id) {
+                let triggerStr = rule.triggerKeyCode.map {
+                    rule.triggerModifiers.symbolString + KeyCodeMap.displayName(for: $0)
+                } ?? "—"
+                let targetStr = rule.targetKeyCode.map {
+                    rule.targetModifiers.symbolString + KeyCodeMap.displayName(for: $0)
+                } ?? "—"
+                Text("\(triggerStr) → \(targetStr)\n이 작업은 취소할 수 없습니다.")
+            } else {
+                Text("이 작업은 취소할 수 없습니다.")
+            }
+        }
     }
 
     private func addRule() {
@@ -115,7 +142,7 @@ struct RuleListView: View {
             NSLog("[CCShortcut]   delete aborted: no selection")
             return
         }
-        delete(id: id)
+        pendingDelete = id
     }
 
     /// Delete by explicit id (used by context menu and - button).
