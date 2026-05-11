@@ -1,0 +1,25 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
+
+# 배포 산물
+dist/
+*.zip
+*.dmg
+*.app
+ExportOptions.plist
+
+# Sparkle 도구 (다운로드해서 쓰는 것, 저장소에 포함하지 않음)
+tools/
