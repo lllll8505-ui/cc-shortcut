@@ -62,17 +62,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
+        // Initial state: react to the value present at launch.
+        if permission.isTrusted {
+            eventTap.start()
+        }
+
+        // Skip the initial emission so we only react to actual transitions.
+        // On false → true transition we relaunch, because ad-hoc-signed builds
+        // often can't pick up newly granted Accessibility permission without
+        // a fresh process.
         permission.$isTrusted
+            .dropFirst()
             .removeDuplicates()
             .sink { [weak self] trusted in
                 guard let self else { return }
                 if trusted {
-                    self.eventTap.start()
+                    self.relaunchApp()
                 } else {
                     self.eventTap.stop()
                 }
             }
             .store(in: &cancellables)
+    }
+
+    private func relaunchApp() {
+        let bundleURL = Bundle.main.bundleURL
+        let config = NSWorkspace.OpenConfiguration()
+        config.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: bundleURL, configuration: config) { _, _ in
+            DispatchQueue.main.async {
+                NSApp.terminate(nil)
+            }
+        }
     }
 
     private func setupStatusItem() {
