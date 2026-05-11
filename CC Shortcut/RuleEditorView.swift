@@ -8,6 +8,7 @@ import SwiftUI
 struct RuleEditorView: View {
     @EnvironmentObject private var store: RuleStore
     let ruleID: ShortcutRule.ID
+    var onCancel: () -> Void = {}
 
     @State private var triggerKeyCode: Int?
     @State private var triggerModifiers: Modifiers = []
@@ -86,6 +87,8 @@ struct RuleEditorView: View {
                             .transition(.opacity)
                     }
                     Spacer()
+                    Button("취소", action: cancel)
+                        .keyboardShortcut(.cancelAction)
                     Button("되돌리기") { load() }
                         .keyboardShortcut("r", modifiers: [.command])
                         .disabled(!hasChanges)
@@ -124,6 +127,19 @@ struct RuleEditorView: View {
             || original.targetKeyCode != targetKeyCode
             || original.targetModifiers != targetModifiers
             || original.label != label
+    }
+
+    private func cancel() {
+        // 새로 추가한 빈 규칙이면 같이 삭제 — 안 그러면 리스트에 '— → —'
+        // 빈 항목이 남음. 사용자가 한 번도 키를 안 입력한 경우만 해당.
+        if let r = store.rule(for: ruleID),
+           r.triggerKeyCode == nil && r.targetKeyCode == nil && r.label.isEmpty {
+            NSLog("[CCShortcut] cancel — deleting unfilled rule \(ruleID)")
+            store.delete(id: ruleID)
+        } else {
+            NSLog("[CCShortcut] cancel — discarding unsaved changes for \(ruleID)")
+        }
+        onCancel()
     }
 
     private func swapTriggerAndTarget() {

@@ -29,7 +29,7 @@ struct ContentView: View {
 
             Group {
                 if let id = selection, store.rule(for: id) != nil {
-                    RuleEditorView(ruleID: id)
+                    RuleEditorView(ruleID: id, onCancel: { selection = nil })
                 } else {
                     EmptyEditorView()
                 }
