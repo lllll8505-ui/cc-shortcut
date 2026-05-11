@@ -62,6 +62,28 @@ struct RuleListView: View {
                 .disabled(selection == nil)
                 .help("선택한 규칙 삭제")
 
+                Divider()
+                    .frame(height: 16)
+
+                Button {
+                    (NSApp.delegate as? AppDelegate)?.exportRulesToFile()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .frame(width: 22, height: 22)
+                }
+                .buttonStyle(.borderless)
+                .help("규칙 백업 저장…")
+                .disabled(store.rules.isEmpty)
+
+                Button {
+                    (NSApp.delegate as? AppDelegate)?.importRulesFromFile()
+                } label: {
+                    Image(systemName: "square.and.arrow.down")
+                        .frame(width: 22, height: 22)
+                }
+                .buttonStyle(.borderless)
+                .help("백업에서 규칙 복원…")
+
                 Spacer()
 
                 Text("\(store.rules.count) / \(RuleStore.maxRules)")

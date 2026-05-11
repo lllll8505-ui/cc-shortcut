@@ -21,7 +21,7 @@ struct CC_ShortcutApp: App {
                         appDelegate.updaterController.checkForUpdates(nil)
                     }
                 }
-                CommandGroup(replacing: .saveItem) {
+                CommandMenu("백업") {
                     Button("규칙 백업 저장…") {
                         appDelegate.exportRulesToFile()
                     }
