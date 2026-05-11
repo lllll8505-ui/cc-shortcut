@@ -44,6 +44,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("[CCShortcut] ==================== app launching ====================")
         NSLog("[CCShortcut] bundleID=\(Bundle.main.bundleIdentifier ?? "?") path=\(Bundle.main.bundlePath)")
+        NSLog("[CCShortcut] PID=\(ProcessInfo.processInfo.processIdentifier)")
+
+        // Prevent duplicate instances. If another CC Shortcut is already
+        // running, surface it and exit.
+        let myPID = ProcessInfo.processInfo.processIdentifier
+        let bid = Bundle.main.bundleIdentifier ?? ""
+        let others = NSRunningApplication.runningApplications(withBundleIdentifier: bid)
+            .filter { $0.processIdentifier != myPID }
+        if !others.isEmpty {
+            NSLog("[CCShortcut] ⚠️ \(others.count) other instance(s) of \(bid) running; activating one and terminating self")
+            others.first?.activate()
+            NSApp.terminate(nil)
+            return
+        }
+
         NSLog("[CCShortcut] permission.isTrusted=\(permission.isTrusted)  store.rules=\(store.rules.count) rule(s)")
 
         setupBindings()

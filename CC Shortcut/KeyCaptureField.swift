@@ -19,7 +19,10 @@ struct KeyCaptureField: View {
     @State private var isCapturing = false
 
     var body: some View {
-        Button(action: { isCapturing.toggle() }) {
+        Button(action: {
+            isCapturing.toggle()
+            NSLog("[CCShortcut] KeyCaptureField button click — isCapturing now=\(isCapturing) (title='\(title)')")
+        }) {
             HStack(spacing: 8) {
                 Image(systemName: isCapturing ? "record.circle" : "keyboard")
                     .foregroundStyle(isCapturing ? Color.accentColor : .secondary)
@@ -99,6 +102,7 @@ private struct KeyCaptureMonitor: NSViewRepresentable {
         }
 
         func update(isCapturing: Bool, onCapture: @escaping (Int, Modifiers) -> Void) {
+            NSLog("[CCShortcut] KeyCaptureMonitor.update isCapturing=\(isCapturing)")
             if isCapturing {
                 install(onCapture: onCapture)
             } else {
@@ -109,10 +113,12 @@ private struct KeyCaptureMonitor: NSViewRepresentable {
         private func install(onCapture: @escaping (Int, Modifiers) -> Void) {
             uninstall()
 
-            // Prefer the global CGEventTap when available — it intercepts
-            // events before macOS system shortcuts (⌘⇧3/4/5, Mission Control,
-            // etc.), so the user can register any combo as a trigger.
-            if let tap = eventTap, tap.isActive {
+            let tap = eventTap
+            NSLog("[CCShortcut] KeyCaptureMonitor.install — eventTap=\(tap == nil ? "nil" : "exists") isActive=\(tap?.isActive == true)")
+
+            // Prefer the global CGEventTap when available.
+            if let tap, tap.isActive {
+                NSLog("[CCShortcut]   → installing capture callback on EventTapManager")
                 tap.setCaptureCallback { keyCode, mods in
                     DispatchQueue.main.async { onCapture(keyCode, mods) }
                 }
@@ -120,8 +126,8 @@ private struct KeyCaptureMonitor: NSViewRepresentable {
                 return
             }
 
-            // Fallback: in-app local monitor (system shortcuts still take
-            // precedence here, but it's enough before Accessibility is granted).
+            // Fallback: in-app local monitor.
+            NSLog("[CCShortcut]   → falling back to NSEvent.addLocalMonitorForEvents")
             localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 let mods = Modifiers(nsFlags: event.modifierFlags)
                 let code = Int(event.keyCode)
