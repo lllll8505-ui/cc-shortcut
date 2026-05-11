@@ -16,6 +16,7 @@ struct KeyCaptureField: View {
     @Binding var keyCode: Int?
     @Binding var modifiers: Modifiers
 
+    @EnvironmentObject private var status: AppStatus
     @State private var isCapturing = false
 
     var body: some View {
@@ -53,7 +54,10 @@ struct KeyCaptureField: View {
         }
         .buttonStyle(.plain)
         .background(
-            KeyCaptureMonitor(isCapturing: isCapturing) { code, mods in
+            KeyCaptureMonitor(
+                isCapturing: isCapturing,
+                eventTap: status.eventTap
+            ) { code, mods in
                 if code == kVK_Escape && mods.isEmpty {
                     isCapturing = false
                     return
@@ -83,50 +87,51 @@ struct KeyCaptureField: View {
 
 private struct KeyCaptureMonitor: NSViewRepresentable {
     let isCapturing: Bool
+    let eventTap: EventTapManager?
     let onCapture: (Int, Modifiers) -> Void
 
     func makeNSView(context: Context) -> NSView { NSView() }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        context.coordinator.update(isCapturing: isCapturing, onCapture: onCapture)
+        context.coordinator.update(isCapturing: isCapturing, eventTap: eventTap, onCapture: onCapture)
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     final class Coordinator {
         private var localMonitor: Any?
-        private var usingEventTap = false
+        private weak var installedTap: EventTapManager?
 
-        private var eventTap: EventTapManager? {
-            (NSApp.delegate as? AppDelegate)?.eventTap
-        }
-
-        func update(isCapturing: Bool, onCapture: @escaping (Int, Modifiers) -> Void) {
-            NSLog("[CCShortcut] KeyCaptureMonitor.update isCapturing=\(isCapturing)")
+        func update(
+            isCapturing: Bool,
+            eventTap: EventTapManager?,
+            onCapture: @escaping (Int, Modifiers) -> Void
+        ) {
+            NSLog("[CCShortcut] KeyCaptureMonitor.update isCapturing=\(isCapturing), eventTap=\(eventTap == nil ? "nil" : "ok") isActive=\(eventTap?.isActive == true)")
             if isCapturing {
-                install(onCapture: onCapture)
+                install(eventTap: eventTap, onCapture: onCapture)
             } else {
                 uninstall()
             }
         }
 
-        private func install(onCapture: @escaping (Int, Modifiers) -> Void) {
+        private func install(
+            eventTap: EventTapManager?,
+            onCapture: @escaping (Int, Modifiers) -> Void
+        ) {
             uninstall()
 
-            let tap = eventTap
-            NSLog("[CCShortcut] KeyCaptureMonitor.install — eventTap=\(tap == nil ? "nil" : "exists") isActive=\(tap?.isActive == true)")
-
-            // Prefer the global CGEventTap when available.
-            if let tap, tap.isActive {
+            // Prefer the global CGEventTap (passed from AppStatus).
+            if let tap = eventTap, tap.isActive {
                 NSLog("[CCShortcut]   → installing capture callback on EventTapManager")
                 tap.setCaptureCallback { keyCode, mods in
                     DispatchQueue.main.async { onCapture(keyCode, mods) }
                 }
-                usingEventTap = true
+                installedTap = tap
                 return
             }
 
-            // Fallback: in-app local monitor.
+            // Fallback: in-app local monitor (no system shortcut interception).
             NSLog("[CCShortcut]   → falling back to NSEvent.addLocalMonitorForEvents")
             localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 let mods = Modifiers(nsFlags: event.modifierFlags)
@@ -137,9 +142,9 @@ private struct KeyCaptureMonitor: NSViewRepresentable {
         }
 
         private func uninstall() {
-            if usingEventTap {
-                eventTap?.setCaptureCallback(nil)
-                usingEventTap = false
+            if let tap = installedTap {
+                tap.setCaptureCallback(nil)
+                installedTap = nil
             }
             if let m = localMonitor {
                 NSEvent.removeMonitor(m)

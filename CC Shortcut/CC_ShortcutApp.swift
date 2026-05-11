@@ -28,7 +28,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let store = RuleStore()
     let permission = AccessibilityPermission()
     let eventTap = EventTapManager()
-    let status = AppStatus()
+    let status: AppStatus
+
+    override init() {
+        self.status = AppStatus()
+        super.init()
+        // Wire the tap into shared status so SwiftUI views (KeyCaptureField)
+        // can access it via @EnvironmentObject instead of NSApp.delegate.
+        self.status.eventTap = self.eventTap
+    }
 
     private(set) lazy var updaterController: SPUStandardUpdaterController = {
         SPUStandardUpdaterController(
