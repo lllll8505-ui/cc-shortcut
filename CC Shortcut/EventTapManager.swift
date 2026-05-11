@@ -129,7 +129,9 @@ nonisolated final class EventTapManager {
 
         // Skip events we synthesized ourselves (otherwise infinite loop).
         if event.getIntegerValueField(.eventSourceUserData) == Self.injectedTag {
-            NSLog("[CCShortcut]   (our injected event — pass through)")
+            let kc = Int(event.getIntegerValueField(.keyboardEventKeycode))
+            let mds = Modifiers(cgFlags: event.flags)
+            NSLog("[CCShortcut]   (our injected event keyCode=\(kc) mods='\(mds.symbolString)' raw=\(mds.rawValue) — pass through)")
             return Unmanaged.passUnretained(event)
         }
 
@@ -169,8 +171,11 @@ nonisolated final class EventTapManager {
         ) {
             newEvent.flags = rule.targetModifiers.cgFlags
             newEvent.setIntegerValueField(.eventSourceUserData, value: Self.injectedTag)
-            newEvent.post(tap: .cgSessionEventTap)
-            NSLog("[CCShortcut]   ✓ posted synthesized \(typeStr) event with target key+flags")
+            // Post at HID level so the event flows through the full chain
+            // like a real keystroke, and arrives at the active app with the
+            // flags we specified (instead of being "corrected" downstream).
+            newEvent.post(tap: .cghidEventTap)
+            NSLog("[CCShortcut]   ✓ posted synthesized \(typeStr) event keyCode=\(targetKeyCode) flags='\(rule.targetModifiers.symbolString)' via .cghidEventTap")
         } else {
             NSLog("[CCShortcut]   ❌ CGEvent creation failed for targetKeyCode=\(targetKeyCode)")
         }
