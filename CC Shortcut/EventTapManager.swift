@@ -15,6 +15,7 @@ nonisolated final class EventTapManager {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var rules: [ShortcutRule] = []
+    private var captureCallback: (@Sendable (Int, Modifiers) -> Void)?
     private let lock = NSLock()
 
     func updateRules(_ rules: [ShortcutRule]) {
@@ -23,10 +24,25 @@ nonisolated final class EventTapManager {
         lock.unlock()
     }
 
+    /// Install a one-shot key-capture callback. While set, all key events are
+    /// consumed (not remapped, not delivered to other apps) and the first
+    /// keyDown is forwarded to the callback. Set to nil to leave capture mode.
+    func setCaptureCallback(_ callback: (@Sendable (Int, Modifiers) -> Void)?) {
+        lock.lock()
+        captureCallback = callback
+        lock.unlock()
+    }
+
     private func currentRules() -> [ShortcutRule] {
         lock.lock()
         defer { lock.unlock() }
         return rules
+    }
+
+    private func currentCaptureCallback() -> (@Sendable (Int, Modifiers) -> Void)? {
+        lock.lock()
+        defer { lock.unlock() }
+        return captureCallback
     }
 
     var isActive: Bool { eventTap != nil }
@@ -89,6 +105,15 @@ nonisolated final class EventTapManager {
 
         let keyCode = Int(event.getIntegerValueField(.keyboardEventKeycode))
         let mods = Modifiers(cgFlags: event.flags)
+
+        // Capture mode: consume the event and (on keyDown) forward to callback.
+        // This bypasses macOS system shortcuts (screenshots, Mission Control, etc.)
+        if let capture = currentCaptureCallback() {
+            if type == .keyDown {
+                capture(keyCode, mods)
+            }
+            return nil // consume
+        }
 
         guard let rule = currentRules().first(where: {
             $0.triggerKeyCode == keyCode && $0.triggerModifiers == mods

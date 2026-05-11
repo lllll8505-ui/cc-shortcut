@@ -91,7 +91,12 @@ private struct KeyCaptureMonitor: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     final class Coordinator {
-        private var monitor: Any?
+        private var localMonitor: Any?
+        private var usingEventTap = false
+
+        private var eventTap: EventTapManager? {
+            (NSApp.delegate as? AppDelegate)?.eventTap
+        }
 
         func update(isCapturing: Bool, onCapture: @escaping (Int, Modifiers) -> Void) {
             if isCapturing {
@@ -103,7 +108,21 @@ private struct KeyCaptureMonitor: NSViewRepresentable {
 
         private func install(onCapture: @escaping (Int, Modifiers) -> Void) {
             uninstall()
-            monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+
+            // Prefer the global CGEventTap when available — it intercepts
+            // events before macOS system shortcuts (⌘⇧3/4/5, Mission Control,
+            // etc.), so the user can register any combo as a trigger.
+            if let tap = eventTap, tap.isActive {
+                tap.setCaptureCallback { keyCode, mods in
+                    DispatchQueue.main.async { onCapture(keyCode, mods) }
+                }
+                usingEventTap = true
+                return
+            }
+
+            // Fallback: in-app local monitor (system shortcuts still take
+            // precedence here, but it's enough before Accessibility is granted).
+            localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 let mods = Modifiers(nsFlags: event.modifierFlags)
                 let code = Int(event.keyCode)
                 onCapture(code, mods)
@@ -112,9 +131,13 @@ private struct KeyCaptureMonitor: NSViewRepresentable {
         }
 
         private func uninstall() {
-            if let m = monitor {
+            if usingEventTap {
+                eventTap?.setCaptureCallback(nil)
+                usingEventTap = false
+            }
+            if let m = localMonitor {
                 NSEvent.removeMonitor(m)
-                monitor = nil
+                localMonitor = nil
             }
         }
 

@@ -26,19 +26,15 @@ struct PermissionView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            HStack(spacing: 12) {
-                Button("권한 요청") {
-                    permission.request()
-                }
-                Button("시스템 설정 열기") {
-                    permission.openSystemSettings()
-                }
-                .keyboardShortcut(.defaultAction)
+            Button("시스템 설정 열기") {
+                permission.request()  // 앱을 권한 목록에 등록
+                permission.openSystemSettings()
             }
+            .keyboardShortcut(.defaultAction)
             .controlSize(.large)
             .padding(.top, 4)
 
-            Text("권한 허용 후 잠시 기다리면 자동으로 활성화됩니다.")
+            Text("토글을 켜면 잠시 후 자동으로 활성화됩니다.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
