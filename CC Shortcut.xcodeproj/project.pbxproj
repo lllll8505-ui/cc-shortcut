@@ -15,7 +15,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		A1A1A1A1A1A1A1A1A1A10004 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		A1A1A1A1A1A1A1A1A1A10004 /* Exceptions for "CC Shortcut" folder in "CC Shortcut" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -28,7 +28,7 @@
 		558080722FB1E2A400E1289D /* CC Shortcut */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				A1A1A1A1A1A1A1A1A1A10004 /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+				A1A1A1A1A1A1A1A1A1A10004 /* Exceptions for "CC Shortcut" folder in "CC Shortcut" target */,
 			);
 			path = "CC Shortcut";
 			sourceTree = "<group>";

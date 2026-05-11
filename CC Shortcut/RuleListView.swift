@@ -7,10 +7,27 @@ import SwiftUI
 
 struct RuleListView: View {
     @EnvironmentObject private var store: RuleStore
+    @EnvironmentObject private var status: AppStatus
     @Binding var selection: ShortcutRule.ID?
 
     var body: some View {
         VStack(spacing: 0) {
+            // EventTap status banner — green = remap running, red = not.
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(status.isEventTapActive ? Color.green : Color.red)
+                    .frame(width: 8, height: 8)
+                Text(status.isEventTapActive ? "리매핑 활성" : "리매핑 비활성")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color(nsColor: .controlBackgroundColor))
+
+            Divider()
+
             List(selection: $selection) {
                 ForEach(store.rules) { rule in
                     RuleRow(rule: rule)

@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let store = RuleStore()
     let permission = AccessibilityPermission()
     let eventTap = EventTapManager()
+    let status = AppStatus()
 
     private(set) lazy var updaterController: SPUStandardUpdaterController = {
         SPUStandardUpdaterController(
@@ -80,6 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if permission.isTrusted {
             eventTap.start()
         }
+        status.isEventTapActive = eventTap.isActive
 
         // React only to actual transitions. On false → true we relaunch the
         // process, because newly granted Accessibility permission isn't always
@@ -93,6 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.relaunchApp()
                 } else {
                     self.eventTap.stop()
+                    self.status.isEventTapActive = false
                 }
             }
             .store(in: &cancellables)
@@ -114,6 +117,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let content = ContentView()
                 .environmentObject(store)
                 .environmentObject(permission)
+                .environmentObject(status)
             let hosting = NSHostingController(rootView: content)
 
             let window = NSWindow(contentViewController: hosting)

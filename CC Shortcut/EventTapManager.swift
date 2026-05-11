@@ -18,6 +18,10 @@ nonisolated final class EventTapManager {
     private var captureCallback: (@Sendable (Int, Modifiers) -> Void)?
     private let lock = NSLock()
 
+    /// Tag stamped on events we synthesize, so we can recognize and skip them
+    /// when they re-enter our callback (no infinite loop).
+    private static let injectedTag: Int64 = 0x4343_5343_5343 // "CCSCSC"
+
     func updateRules(_ rules: [ShortcutRule]) {
         lock.lock()
         self.rules = rules.filter { $0.isComplete }
@@ -106,34 +110,46 @@ nonisolated final class EventTapManager {
             return Unmanaged.passUnretained(event)
         }
 
+        // Skip events we synthesized ourselves (otherwise infinite loop).
+        if event.getIntegerValueField(.eventSourceUserData) == Self.injectedTag {
+            return Unmanaged.passUnretained(event)
+        }
+
         let keyCode = Int(event.getIntegerValueField(.keyboardEventKeycode))
         let mods = Modifiers(cgFlags: event.flags)
 
         // Capture mode: consume the event and (on keyDown) forward to callback.
-        // This bypasses macOS system shortcuts (screenshots, Mission Control, etc.)
         if let capture = currentCaptureCallback() {
             if type == .keyDown {
                 capture(keyCode, mods)
             }
-            return nil // consume
+            return nil
         }
 
+        // Remap: find a matching rule.
         guard let rule = currentRules().first(where: {
             $0.triggerKeyCode == keyCode && $0.triggerModifiers == mods
         }), let targetKeyCode = rule.targetKeyCode else {
             return Unmanaged.passUnretained(event)
         }
 
-        // Preserve non-mapped flags (e.g. CapsLock, Fn) by clearing only the
-        // four primary modifier bits and OR-ing in the target's modifiers.
-        let primaryMask: CGEventFlags = [.maskCommand, .maskShift, .maskAlternate, .maskControl]
-        var newFlags = event.flags
-        newFlags.remove(primaryMask)
-        newFlags.insert(rule.targetModifiers.cgFlags)
+        // Consume the trigger and post a fresh event with the target keycode
+        // + flags. This is more reliable than mutating the event in-place
+        // (which doesn't always propagate to AppKit shortcut matching).
+        let source = CGEventSource(stateID: .hidSystemState)
+        if let newEvent = CGEvent(
+            keyboardEventSource: source,
+            virtualKey: CGKeyCode(targetKeyCode),
+            keyDown: type == .keyDown
+        ) {
+            newEvent.flags = rule.targetModifiers.cgFlags
+            newEvent.setIntegerValueField(.eventSourceUserData, value: Self.injectedTag)
+            // Post at session level so we bypass any HID-level taps from
+            // other apps (LinearMouse, Logi Options+) — the synthesized
+            // event goes directly to the active app.
+            newEvent.post(tap: .cgSessionEventTap)
+        }
 
-        event.setIntegerValueField(.keyboardEventKeycode, value: Int64(targetKeyCode))
-        event.flags = newFlags
-
-        return Unmanaged.passUnretained(event)
+        return nil  // consume original
     }
 }
