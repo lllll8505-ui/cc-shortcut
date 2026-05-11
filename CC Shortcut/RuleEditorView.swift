@@ -21,10 +21,10 @@ struct RuleEditorView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                // 트리거
+                // 내가 누를 키 (이전 "트리거 단축키")
                 VStack(alignment: .leading, spacing: 8) {
-                    sectionHeader("트리거 단축키", systemImage: "scope")
-                    Text("이 키를 누르면 아래 \"원본 단축키\"가 실행됩니다.")
+                    sectionHeader("내가 누를 키", systemImage: "target")
+                    Text("키보드에서 직접 누를 키 조합입니다.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     KeyCaptureField(
@@ -42,10 +42,10 @@ struct RuleEditorView: View {
                     Spacer()
                 }
 
-                // 타겟
+                // 실제로 작동할 키 (이전 "원본 단축키")
                 VStack(alignment: .leading, spacing: 8) {
-                    sectionHeader("원본 단축키", systemImage: "bolt.horizontal")
-                    Text("실제로 시스템에 전달될 단축키입니다.")
+                    sectionHeader("실제로 작동할 키", systemImage: "bolt.fill")
+                    Text("위 키를 누르면 활성 앱에 이 키가 전달됩니다.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     KeyCaptureField(
@@ -64,7 +64,7 @@ struct RuleEditorView: View {
 
                 if !triggerIsValid && triggerKeyCode != nil {
                     Label(
-                        "트리거에는 모디파이어(⌘ ⌃ ⌥ ⇧)가 하나 이상 필요합니다.",
+                        "\"내가 누를 키\"에는 모디파이어(⌘ ⌃ ⌥ ⇧)가 하나 이상 필요합니다.",
                         systemImage: "exclamationmark.triangle.fill"
                     )
                     .font(.caption)
@@ -95,7 +95,7 @@ struct RuleEditorView: View {
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear { load() }
         .onChange(of: ruleID) { _, _ in load() }
-        .alert("이미 동일한 트리거 단축키가 등록되어 있습니다", isPresented: $showDuplicateAlert) {
+        .alert("이미 동일한 키 조합이 등록되어 있습니다", isPresented: $showDuplicateAlert) {
             Button("확인", role: .cancel) { }
         }
     }
