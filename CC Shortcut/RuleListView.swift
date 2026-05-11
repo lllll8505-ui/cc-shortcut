@@ -62,34 +62,38 @@ struct RuleListView: View {
                 .disabled(selection == nil)
                 .help("선택한 규칙 삭제")
 
-                Divider()
-                    .frame(height: 16)
-
-                Button {
-                    (NSApp.delegate as? AppDelegate)?.exportRulesToFile()
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
-                        .frame(width: 22, height: 22)
-                }
-                .buttonStyle(.borderless)
-                .help("규칙 백업 저장…")
-                .disabled(store.rules.isEmpty)
-
-                Button {
-                    (NSApp.delegate as? AppDelegate)?.importRulesFromFile()
-                } label: {
-                    Image(systemName: "square.and.arrow.down")
-                        .frame(width: 22, height: 22)
-                }
-                .buttonStyle(.borderless)
-                .help("백업에서 규칙 복원…")
-
                 Spacer()
 
                 Text("\(store.rules.count) / \(RuleStore.maxRules)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color(nsColor: .controlBackgroundColor))
+
+            Divider()
+
+            // 항상 보이는 백업/복원 바
+            HStack(spacing: 8) {
+                Button {
+                    (NSApp.delegate as? AppDelegate)?.exportRulesToFile()
+                } label: {
+                    Label("백업", systemImage: "square.and.arrow.up")
+                        .labelStyle(.titleAndIcon)
+                }
+                .help("현재 규칙을 JSON 파일로 저장합니다")
+
+                Button {
+                    (NSApp.delegate as? AppDelegate)?.importRulesFromFile()
+                } label: {
+                    Label("복원", systemImage: "square.and.arrow.down")
+                        .labelStyle(.titleAndIcon)
+                }
+                .help("백업 파일에서 규칙을 불러옵니다")
+
+                Spacer()
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
