@@ -36,9 +36,13 @@ struct RuleEditorView: View {
 
                 HStack {
                     Spacer()
-                    Image(systemName: "arrow.down")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
+                    Button(action: swapTriggerAndTarget) {
+                        Label("위아래 자리 바꾸기", systemImage: "arrow.up.arrow.down")
+                            .labelStyle(.titleAndIcon)
+                            .font(.callout)
+                    }
+                    .buttonStyle(.bordered)
+                    .help("'내가 누를 키'와 '실제로 작동할 키'를 서로 바꿉니다")
                     Spacer()
                 }
 
@@ -120,6 +124,16 @@ struct RuleEditorView: View {
             || original.targetKeyCode != targetKeyCode
             || original.targetModifiers != targetModifiers
             || original.label != label
+    }
+
+    private func swapTriggerAndTarget() {
+        let oldTriggerCode = triggerKeyCode
+        let oldTriggerMods = triggerModifiers
+        triggerKeyCode = targetKeyCode
+        triggerModifiers = targetModifiers
+        targetKeyCode = oldTriggerCode
+        targetModifiers = oldTriggerMods
+        NSLog("[CCShortcut] swap trigger↔target — now trigger=\(triggerKeyCode?.description ?? "nil")/\(triggerModifiers.rawValue) target=\(targetKeyCode?.description ?? "nil")/\(targetModifiers.rawValue)")
     }
 
     private func load() {
