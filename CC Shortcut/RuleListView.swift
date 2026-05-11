@@ -32,6 +32,13 @@ struct RuleListView: View {
                 ForEach(store.rules) { rule in
                     RuleRow(rule: rule)
                         .tag(rule.id)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                delete(id: rule.id)
+                            } label: {
+                                Label("삭제", systemImage: "trash")
+                            }
+                        }
                 }
             }
             .listStyle(.inset(alternatesRowBackgrounds: false))
@@ -80,20 +87,27 @@ struct RuleListView: View {
             NSLog("[CCShortcut]   delete aborted: no selection")
             return
         }
+        delete(id: id)
+    }
+
+    /// Delete by explicit id (used by context menu and - button).
+    private func delete(id: ShortcutRule.ID) {
         let rules = store.rules
         let removingIndex = rules.firstIndex(where: { $0.id == id })
         store.delete(id: id)
 
-        if let idx = removingIndex {
-            let remaining = store.rules
-            if remaining.isEmpty {
-                selection = nil
+        if selection == id {
+            if let idx = removingIndex {
+                let remaining = store.rules
+                if remaining.isEmpty {
+                    selection = nil
+                } else {
+                    let next = min(idx, remaining.count - 1)
+                    selection = remaining[next].id
+                }
             } else {
-                let next = min(idx, remaining.count - 1)
-                selection = remaining[next].id
+                selection = nil
             }
-        } else {
-            selection = nil
         }
     }
 }
