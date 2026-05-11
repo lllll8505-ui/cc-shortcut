@@ -133,13 +133,19 @@ struct RuleEditorView: View {
     }
 
     private func save() {
-        guard let tk = triggerKeyCode, let tgt = targetKeyCode else { return }
+        NSLog("[CCShortcut] RuleEditorView.save() called — triggerKeyCode=\(triggerKeyCode?.description ?? "nil") triggerMods=\(triggerModifiers.rawValue) targetKeyCode=\(targetKeyCode?.description ?? "nil") targetMods=\(targetModifiers.rawValue) hasChanges=\(hasChanges) canSave=\(canSave)")
+
+        guard let tk = triggerKeyCode, let tgt = targetKeyCode else {
+            NSLog("[CCShortcut]   save aborted: trigger or target keyCode is nil")
+            return
+        }
 
         if store.isDuplicate(
             triggerKeyCode: tk,
             triggerModifiers: triggerModifiers,
             excluding: ruleID
         ) {
+            NSLog("[CCShortcut]   save aborted: duplicate trigger")
             showDuplicateAlert = true
             return
         }

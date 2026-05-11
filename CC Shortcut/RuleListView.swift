@@ -75,7 +75,11 @@ struct RuleListView: View {
     }
 
     private func deleteSelected() {
-        guard let id = selection else { return }
+        NSLog("[CCShortcut] RuleListView.deleteSelected() called — selection=\(selection?.uuidString ?? "nil")")
+        guard let id = selection else {
+            NSLog("[CCShortcut]   delete aborted: no selection")
+            return
+        }
         let rules = store.rules
         let removingIndex = rules.firstIndex(where: { $0.id == id })
         store.delete(id: id)
