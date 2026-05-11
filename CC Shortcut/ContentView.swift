@@ -13,7 +13,7 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if !permission.isFullyTrusted {
+            if !permission.isTrusted {
                 PermissionView()
             } else {
                 mainSplit
