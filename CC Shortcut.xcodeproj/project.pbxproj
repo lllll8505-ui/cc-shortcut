@@ -14,9 +14,22 @@
 		558080702FB1E2A400E1289D /* CC Shortcut.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CC Shortcut.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A1A1A1A1A1A1A1A1A1A10004 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5580806F2FB1E2A400E1289D /* CC Shortcut */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		558080722FB1E2A400E1289D /* CC Shortcut */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A1A1A1A1A1A1A1A1A1A10004 /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
 			path = "CC Shortcut";
 			sourceTree = "<group>";
 		};
@@ -92,11 +105,12 @@
 				};
 			};
 			buildConfigurationList = 5580806B2FB1E2A300E1289D /* Build configuration list for PBXProject "CC Shortcut" */;
-			developmentRegion = en;
+			developmentRegion = ko;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				ko,
 			);
 			mainGroup = 558080672FB1E2A300E1289D;
 			minimizedProjectReferenceProxies = 1;
@@ -267,12 +281,8 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_SUEnableAutomaticChecks = YES;
-				INFOPLIST_KEY_SUFeedURL = "https://raw.githubusercontent.com/lllll8505-ui/cc-shortcut/main/appcast.xml";
-				INFOPLIST_KEY_SUPublicEDKey = "PVJ0H0Qtp0MUcJTy80HoFNUNrSrpHL8CaAP6uCMFU/w=";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "CC Shortcut/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -303,12 +313,8 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_SUEnableAutomaticChecks = YES;
-				INFOPLIST_KEY_SUFeedURL = "https://raw.githubusercontent.com/lllll8505-ui/cc-shortcut/main/appcast.xml";
-				INFOPLIST_KEY_SUPublicEDKey = "PVJ0H0Qtp0MUcJTy80HoFNUNrSrpHL8CaAP6uCMFU/w=";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "CC Shortcut/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
