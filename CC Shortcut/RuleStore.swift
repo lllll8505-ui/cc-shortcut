@@ -46,21 +46,34 @@ final class RuleStore: ObservableObject {
 
     @discardableResult
     func add(_ rule: ShortcutRule) -> ShortcutRule? {
-        guard rules.count < Self.maxRules else { return nil }
+        guard rules.count < Self.maxRules else {
+            NSLog("[CCShortcut] RuleStore.add rejected — at max capacity (\(Self.maxRules))")
+            return nil
+        }
         rules.append(rule)
         persist()
+        NSLog("[CCShortcut] RuleStore.add OK — count=\(rules.count), id=\(rule.id)")
         return rule
     }
 
     func update(_ rule: ShortcutRule) {
-        guard let idx = rules.firstIndex(where: { $0.id == rule.id }) else { return }
+        guard let idx = rules.firstIndex(where: { $0.id == rule.id }) else {
+            NSLog("[CCShortcut] RuleStore.update FAILED — id \(rule.id) not found")
+            return
+        }
         rules[idx] = rule
         persist()
+        let trg = rule.triggerKeyCode.map(String.init) ?? "nil"
+        let tgt = rule.targetKeyCode.map(String.init) ?? "nil"
+        NSLog("[CCShortcut] RuleStore.update OK — id=\(rule.id) trigger='\(rule.triggerModifiers.symbolString)\(trg)' target='\(rule.targetModifiers.symbolString)\(tgt)'")
     }
 
     func delete(id: ShortcutRule.ID) {
+        let beforeCount = rules.count
         rules.removeAll { $0.id == id }
+        let afterCount = rules.count
         persist()
+        NSLog("[CCShortcut] RuleStore.delete id=\(id) — count \(beforeCount) → \(afterCount)")
     }
 
     func rule(for id: ShortcutRule.ID) -> ShortcutRule? {
