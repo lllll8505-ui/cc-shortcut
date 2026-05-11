@@ -16,7 +16,9 @@ final class AccessibilityPermission: ObservableObject {
     private var activationObserver: NSObjectProtocol?
 
     init() {
-        self.isTrusted = AXIsProcessTrusted()
+        let initial = AXIsProcessTrusted()
+        self.isTrusted = initial
+        NSLog("[CCShortcut] AccessibilityPermission init: AXIsProcessTrusted=\(initial)")
         startMonitoring()
         observeAppActivation()
     }
@@ -52,6 +54,7 @@ final class AccessibilityPermission: ObservableObject {
     private func refresh() {
         let current = AXIsProcessTrusted()
         if current != isTrusted {
+            NSLog("[CCShortcut] Accessibility permission changed: \(isTrusted) → \(current)")
             isTrusted = current
         }
     }

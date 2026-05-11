@@ -3,8 +3,7 @@
 //  CC Shortcut
 //
 //  Captures global keyboard events via CGEventTap and remaps them based on
-//  the user's rules. Runs on the main thread (event tap callbacks happen on
-//  the main run loop).
+//  the user's rules.
 //
 
 import Foundation
@@ -25,7 +24,9 @@ nonisolated final class EventTapManager {
     func updateRules(_ rules: [ShortcutRule]) {
         lock.lock()
         self.rules = rules.filter { $0.isComplete }
+        let count = self.rules.count
         lock.unlock()
+        NSLog("[CCShortcut] updateRules: \(count) active rule(s)")
     }
 
     /// Install a one-shot key-capture callback. While set, all key events are
@@ -35,6 +36,7 @@ nonisolated final class EventTapManager {
         lock.lock()
         captureCallback = callback
         lock.unlock()
+        NSLog("[CCShortcut] setCaptureCallback: \(callback == nil ? "cleared" : "installed")")
     }
 
     private func currentRules() -> [ShortcutRule] {
@@ -52,7 +54,15 @@ nonisolated final class EventTapManager {
     var isActive: Bool { eventTap != nil }
 
     func start() {
-        guard eventTap == nil else { return }
+        NSLog("[CCShortcut] EventTapManager.start() called")
+
+        guard eventTap == nil else {
+            NSLog("[CCShortcut]   tap already exists — skipping")
+            return
+        }
+
+        let trusted = AXIsProcessTrusted()
+        NSLog("[CCShortcut]   AXIsProcessTrusted() = \(trusted)")
 
         let mask: CGEventMask =
             (1 << CGEventType.keyDown.rawValue) |
@@ -60,9 +70,6 @@ nonisolated final class EventTapManager {
 
         let userInfo = Unmanaged.passUnretained(self).toOpaque()
 
-        // Session-level tap (works with just Accessibility, same level BTT
-        // uses). Inserted at head of chain so we precede other taps and
-        // most system shortcut handlers.
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
             place: .headInsertEventTap,
@@ -75,7 +82,7 @@ nonisolated final class EventTapManager {
             },
             userInfo: userInfo
         ) else {
-            NSLog("CC Shortcut: failed to create event tap (permission denied?)")
+            NSLog("[CCShortcut]   ❌ CGEvent.tapCreate returned nil — Accessibility permission not effective for this process (likely signing/TCC mismatch)")
             return
         }
 
@@ -85,9 +92,11 @@ nonisolated final class EventTapManager {
         self.runLoopSource = source
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
+        NSLog("[CCShortcut]   ✓ event tap created at .cgSessionEventTap (head insert) and enabled")
     }
 
     func stop() {
+        NSLog("[CCShortcut] EventTapManager.stop() called")
         if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
         }
@@ -99,7 +108,15 @@ nonisolated final class EventTapManager {
     }
 
     private func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
-        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+        if type == .tapDisabledByTimeout {
+            NSLog("[CCShortcut] ⚠️ tap disabled by TIMEOUT — re-enabling")
+            if let tap = eventTap {
+                CGEvent.tapEnable(tap: tap, enable: true)
+            }
+            return Unmanaged.passUnretained(event)
+        }
+        if type == .tapDisabledByUserInput {
+            NSLog("[CCShortcut] ⚠️ tap disabled by USER INPUT — re-enabling")
             if let tap = eventTap {
                 CGEvent.tapEnable(tap: tap, enable: true)
             }
@@ -112,14 +129,19 @@ nonisolated final class EventTapManager {
 
         // Skip events we synthesized ourselves (otherwise infinite loop).
         if event.getIntegerValueField(.eventSourceUserData) == Self.injectedTag {
+            NSLog("[CCShortcut]   (our injected event — pass through)")
             return Unmanaged.passUnretained(event)
         }
 
         let keyCode = Int(event.getIntegerValueField(.keyboardEventKeycode))
         let mods = Modifiers(cgFlags: event.flags)
+        let typeStr = type == .keyDown ? "DOWN" : "UP "
+
+        NSLog("[CCShortcut] \(typeStr) keyCode=\(keyCode) mods='\(mods.symbolString)' (raw=\(mods.rawValue))")
 
         // Capture mode: consume the event and (on keyDown) forward to callback.
         if let capture = currentCaptureCallback() {
+            NSLog("[CCShortcut]   → capture mode, forwarding")
             if type == .keyDown {
                 capture(keyCode, mods)
             }
@@ -127,15 +149,18 @@ nonisolated final class EventTapManager {
         }
 
         // Remap: find a matching rule.
-        guard let rule = currentRules().first(where: {
+        let rules = currentRules()
+        guard let rule = rules.first(where: {
             $0.triggerKeyCode == keyCode && $0.triggerModifiers == mods
         }), let targetKeyCode = rule.targetKeyCode else {
+            NSLog("[CCShortcut]   → no rule match among \(rules.count) rules — pass through")
             return Unmanaged.passUnretained(event)
         }
 
+        NSLog("[CCShortcut]   ★ MATCH! trigger='\(rule.triggerModifiers.symbolString)\(rule.triggerKeyCode ?? -1)' → target='\(rule.targetModifiers.symbolString)\(targetKeyCode)'")
+
         // Consume the trigger and post a fresh event with the target keycode
-        // + flags. This is more reliable than mutating the event in-place
-        // (which doesn't always propagate to AppKit shortcut matching).
+        // + flags.
         let source = CGEventSource(stateID: .hidSystemState)
         if let newEvent = CGEvent(
             keyboardEventSource: source,
@@ -144,10 +169,10 @@ nonisolated final class EventTapManager {
         ) {
             newEvent.flags = rule.targetModifiers.cgFlags
             newEvent.setIntegerValueField(.eventSourceUserData, value: Self.injectedTag)
-            // Post at session level so we bypass any HID-level taps from
-            // other apps (LinearMouse, Logi Options+) — the synthesized
-            // event goes directly to the active app.
             newEvent.post(tap: .cgSessionEventTap)
+            NSLog("[CCShortcut]   ✓ posted synthesized \(typeStr) event with target key+flags")
+        } else {
+            NSLog("[CCShortcut]   ❌ CGEvent creation failed for targetKeyCode=\(targetKeyCode)")
         }
 
         return nil  // consume original

@@ -42,11 +42,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var mainWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSLog("[CCShortcut] ==================== app launching ====================")
+        NSLog("[CCShortcut] bundleID=\(Bundle.main.bundleIdentifier ?? "?") path=\(Bundle.main.bundlePath)")
+        NSLog("[CCShortcut] permission.isTrusted=\(permission.isTrusted)  store.rules=\(store.rules.count) rule(s)")
+
         setupBindings()
         showMainWindow()
 
         // Touch the updater so it starts checking for updates per its schedule.
         _ = updaterController
+
+        NSLog("[CCShortcut] applicationDidFinishLaunching done; eventTap.isActive=\(eventTap.isActive)")
     }
 
     func applicationWillTerminate(_ notification: Notification) {
