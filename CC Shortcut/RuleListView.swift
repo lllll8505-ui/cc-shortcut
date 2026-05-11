@@ -78,7 +78,8 @@ struct RuleListView: View {
             // 항상 보이는 백업/복원 바
             HStack(spacing: 8) {
                 Button {
-                    (NSApp.delegate as? AppDelegate)?.exportRulesToFile()
+                    NSLog("[CCShortcut] 백업 버튼 클릭됨")
+                    status.exportAction()
                 } label: {
                     Label("백업", systemImage: "square.and.arrow.up")
                         .labelStyle(.titleAndIcon)
@@ -86,7 +87,8 @@ struct RuleListView: View {
                 .help("현재 규칙을 JSON 파일로 저장합니다")
 
                 Button {
-                    (NSApp.delegate as? AppDelegate)?.importRulesFromFile()
+                    NSLog("[CCShortcut] 복원 버튼 클릭됨")
+                    status.importAction()
                 } label: {
                     Label("복원", systemImage: "square.and.arrow.down")
                         .labelStyle(.titleAndIcon)

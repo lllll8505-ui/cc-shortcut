@@ -17,4 +17,13 @@ final class AppStatus: ObservableObject {
     /// without going through NSApp.delegate (which can be unreliable on some
     /// SwiftUI launch paths).
     var eventTap: EventTapManager?
+
+    /// Closures wired up by AppDelegate so SwiftUI views can trigger
+    /// backup/restore without going through NSApp.delegate.
+    var exportAction: () -> Void = {
+        NSLog("[CCShortcut] exportAction not wired up — AppStatus.exportAction is the default no-op")
+    }
+    var importAction: () -> Void = {
+        NSLog("[CCShortcut] importAction not wired up — AppStatus.importAction is the default no-op")
+    }
 }

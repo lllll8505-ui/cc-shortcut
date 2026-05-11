@@ -45,9 +45,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     override init() {
         self.status = AppStatus()
         super.init()
-        // Wire the tap into shared status so SwiftUI views (KeyCaptureField)
-        // can access it via @EnvironmentObject instead of NSApp.delegate.
+        // Wire references into shared status so SwiftUI views can access them
+        // via @EnvironmentObject instead of NSApp.delegate (unreliable on some
+        // SwiftUI launch paths).
         self.status.eventTap = self.eventTap
+        self.status.exportAction = { [weak self] in self?.exportRulesToFile() }
+        self.status.importAction = { [weak self] in self?.importRulesFromFile() }
     }
 
     private(set) lazy var updaterController: SPUStandardUpdaterController = {
