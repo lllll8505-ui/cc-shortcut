@@ -7,6 +7,7 @@ import SwiftUI
 import AppKit
 import Combine
 import Sparkle
+import UniformTypeIdentifiers
 
 @main
 struct CC_ShortcutApp: App {
@@ -19,6 +20,17 @@ struct CC_ShortcutApp: App {
                     Button("업데이트 확인…") {
                         appDelegate.updaterController.checkForUpdates(nil)
                     }
+                }
+                CommandGroup(replacing: .saveItem) {
+                    Button("규칙 백업 저장…") {
+                        appDelegate.exportRulesToFile()
+                    }
+                    .keyboardShortcut("e", modifiers: [.command])
+
+                    Button("규칙 복원…") {
+                        appDelegate.importRulesFromFile()
+                    }
+                    .keyboardShortcut("o", modifiers: [.command])
                 }
             }
     }
@@ -138,6 +150,100 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async {
                 NSApp.terminate(nil)
             }
+        }
+    }
+
+    // MARK: - Backup / Restore
+
+    func exportRulesToFile() {
+        let panel = NSSavePanel()
+        panel.title = "규칙 백업 저장"
+        panel.prompt = "저장"
+        panel.canCreateDirectories = true
+        panel.allowedContentTypes = [.json]
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        panel.nameFieldStringValue = "CC Shortcut Backup \(formatter.string(from: Date())).json"
+
+        showMainWindow()
+        panel.beginSheetModal(for: mainWindow ?? NSWindow()) { [weak self] response in
+            guard response == .OK, let url = panel.url, let self else { return }
+            do {
+                try self.store.exportRules(to: url)
+                self.flashAlert(title: "백업 저장 완료",
+                                message: "규칙 \(self.store.rules.count)개를 저장했습니다.\n\(url.lastPathComponent)")
+            } catch {
+                self.flashAlert(title: "백업 실패",
+                                message: error.localizedDescription,
+                                style: .warning)
+            }
+        }
+    }
+
+    func importRulesFromFile() {
+        let panel = NSOpenPanel()
+        panel.title = "백업 파일 선택"
+        panel.prompt = "열기"
+        panel.allowedContentTypes = [.json]
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+
+        showMainWindow()
+        panel.beginSheetModal(for: mainWindow ?? NSWindow()) { [weak self] response in
+            guard response == .OK, let url = panel.url, let self else { return }
+            self.askImportMode { mode in
+                guard let mode else { return }
+                do {
+                    let count = try self.store.importRules(from: url, mode: mode)
+                    self.flashAlert(title: "복원 완료",
+                                    message: "현재 규칙 수: \(count)개")
+                } catch {
+                    self.flashAlert(title: "복원 실패",
+                                    message: error.localizedDescription,
+                                    style: .warning)
+                }
+            }
+        }
+    }
+
+    private func askImportMode(completion: @escaping (RuleStore.ImportMode?) -> Void) {
+        let alert = NSAlert()
+        alert.messageText = "복원 방식을 선택해 주세요"
+        alert.informativeText = "현재 등록된 규칙을 모두 삭제하고 백업으로 덮어쓸지,\n아니면 백업 규칙을 현재 목록에 추가할지 선택합니다."
+        alert.addButton(withTitle: "덮어쓰기")
+        alert.addButton(withTitle: "병합")
+        alert.addButton(withTitle: "취소")
+        alert.alertStyle = .informational
+
+        if let window = mainWindow {
+            alert.beginSheetModal(for: window) { resp in
+                switch resp {
+                case .alertFirstButtonReturn:  completion(.replace)
+                case .alertSecondButtonReturn: completion(.merge)
+                default:                        completion(nil)
+                }
+            }
+        } else {
+            let resp = alert.runModal()
+            switch resp {
+            case .alertFirstButtonReturn:  completion(.replace)
+            case .alertSecondButtonReturn: completion(.merge)
+            default:                        completion(nil)
+            }
+        }
+    }
+
+    private func flashAlert(title: String, message: String, style: NSAlert.Style = .informational) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = style
+        alert.addButton(withTitle: "확인")
+        if let window = mainWindow {
+            alert.beginSheetModal(for: window) { _ in }
+        } else {
+            alert.runModal()
         }
     }
 
