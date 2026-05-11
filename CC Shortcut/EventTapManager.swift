@@ -56,8 +56,12 @@ nonisolated final class EventTapManager {
 
         let userInfo = Unmanaged.passUnretained(self).toOpaque()
 
+        // .cghidEventTap is the HID-level tap — events arrive here BEFORE
+        // macOS processes system shortcuts (⌘⇧3/4/5, Mission Control, etc.),
+        // so returning nil here actually suppresses them during key capture.
+        // .cgSessionEventTap arrives later and can't intercept system shortcuts.
         guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
+            tap: .cghidEventTap,
             place: .headInsertEventTap,
             options: .defaultTap,
             eventsOfInterest: mask,
