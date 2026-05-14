@@ -80,9 +80,23 @@ if [ -z "$GH_OWNER_REPO" ]; then
 fi
 DOWNLOAD_URL="https://github.com/${GH_OWNER_REPO}/releases/download/${TAG}/${ZIP_NAME}"
 
+# CFBundleShortVersionString (마케팅 버전) 검증 — 스크립트 인수와 일치해야 함
+APP_MARKETING_VERSION=$(defaults read "${APP_PATH}/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo "")
+if [ -n "$APP_MARKETING_VERSION" ] && [ "$APP_MARKETING_VERSION" != "$VERSION" ]; then
+    echo "❌ 버전 불일치: 스크립트 인수 '${VERSION}' ≠ 앱의 CFBundleShortVersionString '${APP_MARKETING_VERSION}'" >&2
+    echo "   Xcode에서 아카이브한 버전과 스크립트 인수를 맞춰 주세요." >&2
+    exit 1
+fi
+
 # CFBundleVersion (빌드 번호) 읽기 → sparkle:version에 사용
 BUILD_VERSION=$(defaults read "${APP_PATH}/Contents/Info.plist" CFBundleVersion 2>/dev/null || echo "${VERSION}")
 echo "    마케팅 버전: ${VERSION}  /  빌드 번호: ${BUILD_VERSION}"
+
+# 빌드 번호도 마케팅 버전과 일치하는지 경고 (일치해야 Sparkle이 올바르게 비교)
+if [ "$BUILD_VERSION" != "$VERSION" ]; then
+    echo "⚠️  경고: CFBundleVersion(${BUILD_VERSION}) ≠ 마케팅 버전(${VERSION})" >&2
+    echo "   Xcode의 Build 번호를 Version과 동일하게 설정하는 것을 권장합니다." >&2
+fi
 
 echo "▶︎ appcast.xml 갱신"
 NEW_ITEM=$(cat <<EOF
