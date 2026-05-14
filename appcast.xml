@@ -5,6 +5,18 @@
         <link>https://github.com/lllll8505-ui/cc-shortcut</link>
         <description>CC Shortcut의 최신 버전 정보</description>
         <language>ko</language>
+        <item>
+            <title>버전 1.0.1</title>
+            <pubDate>Thu, 14 May 2026 05:17:50 +0000</pubDate>
+            <sparkle:version>1.0.1</sparkle:version>
+            <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/lllll8505-ui/cc-shortcut/releases/download/v1.0.1/CC-Shortcut-1.0.1.zip"
+                length="4035274"
+                type="application/octet-stream"
+                sparkle:edSignature="R7Pi74ovgTLOfJX4ely/vRlvGy3ZAWgGxFLhQmknDadcs60VsL/xgmzBdPVB95dnEaNdyPVPApubdLk/enVYCQ=="/>
+        </item>
             <item>
             <title>버전 1.0.0</title>
             <pubDate>Tue, 12 May 2026 00:18:29 +0000</pubDate>
