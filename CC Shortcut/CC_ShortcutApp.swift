@@ -13,6 +13,10 @@ import UniformTypeIdentifiers
 struct CC_ShortcutApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    init() {
+        MoveToApplications.moveIfNeeded()
+    }
+
     var body: some Scene {
         Settings { EmptyView() }
             .commands {
@@ -70,11 +74,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSLog("[CCShortcut] PID=\(ProcessInfo.processInfo.processIdentifier)")
 
         // Prevent duplicate instances. If another CC Shortcut is already
-        // running, surface it and exit.
+        // running FROM /Applications, surface it and exit.
+        // (이동 중인 구버전은 /Applications 외 경로이므로 무시)
         let myPID = ProcessInfo.processInfo.processIdentifier
         let bid = Bundle.main.bundleIdentifier ?? ""
         let others = NSRunningApplication.runningApplications(withBundleIdentifier: bid)
             .filter { $0.processIdentifier != myPID }
+            .filter { $0.bundleURL?.path.hasPrefix("/Applications") == true }
         if !others.isEmpty {
             NSLog("[CCShortcut] ⚠️ \(others.count) other instance(s) of \(bid) running; activating one and terminating self")
             others.first?.activate()
@@ -145,7 +151,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .store(in: &cancellables)
     }
 
-    private func relaunchApp() {
+private func relaunchApp() {
         let bundleURL = Bundle.main.bundleURL
         let config = NSWorkspace.OpenConfiguration()
         config.createsNewApplicationInstance = true
@@ -267,7 +273,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.center()
             mainWindow = window
         }
-        NSApp.activate()
+        if #available(macOS 14.0, *) {
+            NSApp.activate()
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+        }
         mainWindow?.makeKeyAndOrderFront(nil)
     }
 }

@@ -97,7 +97,7 @@ struct RuleEditorView: View {
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear { load() }
-        .onChange(of: ruleID) { _, _ in load() }
+        .onChange(of: ruleID) { _ in load() }
         .alert("이미 동일한 키 조합이 등록되어 있습니다", isPresented: $showDuplicateAlert) {
             Button("확인", role: .cancel) { }
         }

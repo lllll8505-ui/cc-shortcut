@@ -80,12 +80,16 @@ if [ -z "$GH_OWNER_REPO" ]; then
 fi
 DOWNLOAD_URL="https://github.com/${GH_OWNER_REPO}/releases/download/${TAG}/${ZIP_NAME}"
 
+# CFBundleVersion (빌드 번호) 읽기 → sparkle:version에 사용
+BUILD_VERSION=$(defaults read "${APP_PATH}/Contents/Info.plist" CFBundleVersion 2>/dev/null || echo "${VERSION}")
+echo "    마케팅 버전: ${VERSION}  /  빌드 번호: ${BUILD_VERSION}"
+
 echo "▶︎ appcast.xml 갱신"
 NEW_ITEM=$(cat <<EOF
         <item>
             <title>버전 ${VERSION}</title>
             <pubDate>${PUB_DATE}</pubDate>
-            <sparkle:version>${VERSION}</sparkle:version>
+            <sparkle:version>${BUILD_VERSION}</sparkle:version>
             <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
             <enclosure
@@ -118,6 +122,7 @@ PYEOF
 echo "▶︎ git commit + tag + push"
 cd "$PROJECT_ROOT"
 git add appcast.xml
+git add "CC Shortcut.xcodeproj/project.pbxproj" 2>/dev/null || true
 git commit -m "Release ${VERSION}" || echo "    (변경사항 없음, 커밋 생략)"
 git tag -a "$TAG" -m "Release ${VERSION}" || echo "    (태그 이미 존재)"
 git push origin HEAD
