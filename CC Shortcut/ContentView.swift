@@ -30,6 +30,7 @@ struct ContentView: View {
             Group {
                 if let id = selection, store.rule(for: id) != nil {
                     RuleEditorView(ruleID: id, onCancel: { selection = nil })
+                        .id(id)  // 규칙이 바뀔 때 뷰를 완전히 새로 만들어 이전 데이터 잔류 방지
                 } else {
                     EmptyEditorView()
                 }
