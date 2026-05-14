@@ -152,14 +152,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
 private func relaunchApp() {
-        let bundleURL = Bundle.main.bundleURL
-        let config = NSWorkspace.OpenConfiguration()
-        config.createsNewApplicationInstance = true
-        NSWorkspace.shared.openApplication(at: bundleURL, configuration: config) { _, _ in
-            DispatchQueue.main.async {
-                NSApp.terminate(nil)
-            }
-        }
+        // 구 인스턴스를 먼저 종료한 뒤 새 인스턴스를 열어야
+        // applicationDidFinishLaunching의 중복 인스턴스 체크와
+        // 타이밍 경쟁이 생기지 않는다.
+        // MoveToApplications와 동일한 "sleep + open -n" 패턴 사용.
+        let path = Bundle.main.bundlePath
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/sh")
+        task.arguments = ["-c", "sleep 0.5 && /usr/bin/open -n \"\(path)\""]
+        try? task.run()
+        NSApp.terminate(nil)
     }
 
     // MARK: - Backup / Restore
